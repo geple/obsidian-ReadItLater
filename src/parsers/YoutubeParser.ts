@@ -17,6 +17,7 @@ interface YoutubeVideo {
     viewsCount: Number;
     tags: string[];
     channel: YoutubeChannel;
+    keywords: string;
 }
 
 interface YoutubeChannel {
@@ -54,7 +55,8 @@ class YoutubeParser extends Parser {
             .replace(/%channelName%/g, video.channel.name)
             .replace(/%channelURL%/g, video.channel.url)
             .replace(/%videoTags%/g, video.tags.join(' '))
-            .replace(/%videoPlayer%/g, video.player);
+            .replace(/%videoPlayer%/g, video.player)
+            .replace(/%videoKeywords%/g, video.keywords.split(',').map(keyword => `#${keyword.trim()}`).join(' ')); // Add the replacement for %videoKeywords%
 
         const fileNameTemplate = this.settings.youtubeNoteTitle
             .replace(/%title%/g, video.title)
@@ -136,7 +138,9 @@ class YoutubeParser extends Parser {
             const videoId = videoSchemaElement?.querySelector('[itemprop="videoId"]')?.getAttribute('content') ?? '';
             const personSchemaElement = videoSchemaElement.querySelector('[itemtype="http://schema.org/Person"]');
             const videoPlayer = `<iframe width="${this.settings.youtubeEmbedWidth}" height="${this.settings.youtubeEmbedHeight}" src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-
+            const metaKeywordsElement = videoHTML.querySelector('meta[name="keywords"]');
+            const videoKeywords = metaKeywordsElement?.getAttribute('content') ?? '';
+            
             return {
                 id: videoId,
                 url: url,
@@ -153,6 +157,7 @@ class YoutubeParser extends Parser {
                     url: personSchemaElement?.querySelector('[itemprop="url"]')?.getAttribute('href') ?? '',
                     name: personSchemaElement?.querySelector('[itemprop="name"]')?.getAttribute('content') ?? '',
                 },
+                keywords: videoKeywords,
             };
         } catch (e) {
             handleError(e);
